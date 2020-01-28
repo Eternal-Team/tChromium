@@ -2,25 +2,29 @@ using BaseLibrary;
 using BaseLibrary.Input;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Input;
 using System;
-using System.Diagnostics;
 using System.Runtime.InteropServices;
+using TChromiumBackend;
 using Terraria;
 using Terraria.ModLoader;
-using test;
 
 namespace TChromium
 {
 	public class TLayer : Layer
 	{
-		private CefSharp browser;
+		private BrowserAPI browser;
 
-		public override bool Enabled => true;
+		public override bool Enabled => Main.instance.IsActive && Main.hasFocus;
 
 		public TLayer()
 		{
-			browser = new CefSharp();
-			CefSharp.Paint += CefSharp_Paint;
+			Dispatcher.Dispatch(() =>
+			{
+				browser = new BrowserAPI();
+				browser.Paint += Paint;
+			});
+
 			Main.instance.Exiting += Instance_Exiting;
 			On.Terraria.Main.DrawCursor += Main_DrawCursor;
 		}
@@ -34,6 +38,8 @@ namespace TChromium
 
 		public override void OnMouseMove(MouseMoveEventArgs args)
 		{
+			browser.Focus();
+
 			browser.MouseMove((int)(args.Position.X - 10), (int)(args.Position.Y - 10));
 
 			args.Handled = true;
@@ -50,7 +56,7 @@ namespace TChromium
 		{
 			posX = (int)(args.Position.X - 10);
 			posY = (int)(args.Position.Y - 10);
-			browser.MouseDown(posX, posY);
+			browser.MouseDown(posX, posY, (int)args.Button);
 
 			args.Handled = true;
 		}
@@ -60,14 +66,51 @@ namespace TChromium
 
 		public override void OnMouseUp(MouseButtonEventArgs args)
 		{
-			browser.MouseUp(posX, posY);
+			browser.MouseUp(posX, posY, (int)args.Button);
+
+			args.Handled = true;
+		}
+
+		private bool block;
+
+		public override void OnKeyPressed(KeyboardEventArgs args)
+		{
+			block = true;
+			browser.KeyDown((int)args.Key);
+
+			args.Handled = true;
+		}
+
+		public override void OnKeyReleased(KeyboardEventArgs args)
+		{
+			browser.KeyUp((int)args.Key);
+
+			args.Handled = true;
+		}
+
+		public override void OnKeyTyped(KeyboardEventArgs args)
+		{
+			if (args.Key == Keys.Left || args.Key == Keys.Right || args.Key == Keys.Back || args.Key == Keys.Delete)
+			{
+				if (block)
+				{
+					block = false;
+					return;
+				}
+
+				browser.KeyDown((int)args.Key);
+			}
+			else
+			{
+				if (args.Character != null) browser.KeyTyped(args.Character.Value);
+			}
 
 			args.Handled = true;
 		}
 
 		public override void OnDraw(SpriteBatch spriteBatch)
 		{
-			if (texture != null)
+			if (texture != null && !texture.IsDisposed)
 			{
 				Main.spriteBatch.End();
 				Main.spriteBatch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend, SamplerState.AnisotropicClamp, DepthStencilState.None, null, TChromium.effect);
@@ -75,6 +118,11 @@ namespace TChromium
 				Main.spriteBatch.End();
 				Main.spriteBatch.Begin();
 			}
+		}
+
+		public override void OnWindowResize(WindowResizedEventArgs args)
+		{
+			browser.SetSize((int)args.Width / 2, (int)args.Height / 2);
 		}
 
 		private void Instance_Exiting(object sender, EventArgs e)
@@ -86,17 +134,30 @@ namespace TChromium
 
 		private byte[] arr;
 
-		private void CefSharp_Paint(IntPtr buffer, int width, int height)
+		private void Paint(IntPtr buffer, int width, int height)
 		{
-			Debug.WriteLine($"Redraw - width: {width}, height: {height}, buffer: {buffer}");
+			try
+			{
+				//Debug.WriteLine($"Redraw - width: {width}, height: {height}, buffer: {buffer}");
 
-			if (arr == null) arr = new byte[width * height * 4];
-			Marshal.Copy(buffer, arr, 0, width * height * 4);
+				int bytes = width * height * 4;
 
-			if (texture == null) texture = new Texture2D(Main.graphics.GraphicsDevice, width, height);
+				if (arr == null || bytes != arr.Length)
+				{
+					arr = new byte[bytes];
+					texture.Dispose();
+				}
 
-			Main.graphics.GraphicsDevice.Textures[0] = null;
-			texture.SetData(arr);
+				Marshal.Copy(buffer, arr, 0, bytes);
+
+				if (texture == null || texture.IsDisposed) texture = new Texture2D(Main.graphics.GraphicsDevice, width, height);
+
+				Main.graphics.GraphicsDevice.Textures[0] = null;
+				texture.SetData(arr);
+			}
+			catch
+			{
+			}
 		}
 	}
 
@@ -108,7 +169,7 @@ namespace TChromium
 		{
 			effect = GetEffect("Effects/BGRtoRGB");
 
-			BaseLibrary.BaseLibrary.Layers.PushLayer(new TLayer());
+			BaseLibrary.BaseLibrary.Layers.PushOverlay(new TLayer());
 		}
 	}
 }

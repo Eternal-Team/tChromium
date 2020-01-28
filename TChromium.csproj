@@ -16,15 +16,14 @@
   </Target>
   <ItemGroup>
     <Compile Remove="lib\**" />
+    <Compile Remove="TChromiumBackend\**" />
     <EmbeddedResource Remove="lib\**" />
+    <EmbeddedResource Remove="TChromiumBackend\**" />
     <None Remove="lib\**" />
+    <None Remove="TChromiumBackend\**" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Libraries\BaseLibrary\BaseLibrary.csproj" />
-  </ItemGroup>
-  <ItemGroup>
-    <Reference Include="test">
-      <HintPath>lib\test.dll</HintPath>
-    </Reference>
+    <ProjectReference Include="TChromiumBackend\TChromiumBackend.csproj" />
   </ItemGroup>
 </Project>

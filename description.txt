@@ -1,1 +1,1 @@
-tChromium is a pretty cool mod, it does...this. Modify this file with a description of your mod.
+tChromium is a web browser in Terraria based on the Chromium Embedded Framework using CefSharp.

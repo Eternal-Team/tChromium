@@ -23,6 +23,9 @@
     <None Remove="TChromiumBackend\**" />
   </ItemGroup>
   <ItemGroup>
+    <None Remove=".gitignore" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\Libraries\BaseLibrary\BaseLibrary.csproj" />
     <ProjectReference Include="TChromiumBackend\TChromiumBackend.csproj" />
   </ItemGroup>

@@ -23,17 +23,34 @@ namespace TChromium
 			{
 				browser = new BrowserAPI();
 				browser.Paint += Paint;
+				browser.OnPageLoaded += PageLoaded;
 			});
 
 			Main.instance.Exiting += Instance_Exiting;
-			On.Terraria.Main.DrawCursor += Main_DrawCursor;
+			On.Terraria.Main.DrawMenu += Draw;
 		}
 
-		private void Main_DrawCursor(On.Terraria.Main.orig_DrawCursor orig, Vector2 bonus, bool smart)
+		private void Draw(On.Terraria.Main.orig_DrawMenu orig, Main self, GameTime gameTime)
 		{
-			OnDraw(Main.spriteBatch);
+			orig(self, gameTime);
 
-			orig(bonus, smart);
+			OnDraw(Main.spriteBatch);
+		}
+
+		private void PageLoaded()
+		{
+			if (browser.URL.Contains("discordapp.com"))
+			{
+				browser.ExecuteJavascript(@"
+												var x = document.getElementsByClassName('wrapper-1BJsBx');
+												var s='';
+												for(var i = 0; i < x.length; i++)
+												{
+													s+=x[i].getAttribute('aria-label')+' ';
+												}
+
+											");
+			}
 		}
 
 		public override void OnMouseMove(MouseMoveEventArgs args)
@@ -145,7 +162,7 @@ namespace TChromium
 				if (arr == null || bytes != arr.Length)
 				{
 					arr = new byte[bytes];
-					texture.Dispose();
+					texture?.Dispose();
 				}
 
 				Marshal.Copy(buffer, arr, 0, bytes);

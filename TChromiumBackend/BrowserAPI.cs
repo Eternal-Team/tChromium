@@ -14,6 +14,9 @@ namespace TChromiumBackend
 		private Browser browser;
 		private IBrowserHost Host => browser.GetBrowserHost();
 		public event Action<IntPtr, int, int> Paint;
+		public event Action OnPageLoaded;
+
+		public string URL => browser.GetMainFrame().Url;
 
 		public BrowserAPI()
 		{
@@ -49,8 +52,14 @@ namespace TChromiumBackend
 			};
 
 			browser.BrowserInitialized += Browser_BrowserInitialized;
+			browser.LoadingStateChanged += Browser_LoadingStateChanged;
 
 			browser.Paint += Browser_Paint;
+		}
+
+		private void Browser_LoadingStateChanged(object sender, LoadingStateChangedEventArgs e)
+		{
+			if (!e.IsLoading) OnPageLoaded?.Invoke();
 		}
 
 		#region Events
@@ -132,6 +141,13 @@ namespace TChromiumBackend
 			browser.Load(url);
 		}
 
+		public async void ExecuteJavascript(string script)
+		{
+		JavascriptResponse response=await	browser.EvaluateScriptAsync(script);
+		Debug.WriteLine(response.Result);
+			//browser.GetMainFrame().ExecuteJavaScriptAsync(script);
+		}
+
 		public void SetSize(int width, int height)
 		{
 			browser.Size = new Size(width, height);
@@ -160,20 +176,22 @@ namespace TChromiumBackend
 
 		private void Browser_BrowserInitialized(object sender, EventArgs e)
 		{
-			browser.LoadHtml(@"
+//			browser.LoadHtml(@"
 
 
-<!DOCTYPE html>
-<html>
-<body>
+//<!DOCTYPE html>
+//<html>
+//<body>
 
-<iframe width='560' height='315' src='https://www.youtube.com/embed/662JyNLVpxE?&autoplay=1' frameborder='0' allowfullscreen></iframe>
+//<iframe width='560' height='315' src='https://www.youtube.com/embed/662JyNLVpxE?&autoplay=1' frameborder='0' allowfullscreen></iframe>
 
-</body>
-</html>
+//</body>
+//</html>
 
 
-");
+//");
+
+			browser.Load("https://discordapp.com/login");
 		}
 
 		private static Assembly Resolver(object sender, ResolveEventArgs args)
